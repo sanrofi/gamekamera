@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Game Kamera - Deteksi Benda Merah</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: space-around;
+      align-items: flex-start;
+      background: #111;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+    #cameraCanvas, #gameCanvas {
+      border: 2px solid white;
+      margin: 10px;
+      background: #222;
+    }
+  </style>
+</head>
+<body>
+  <!-- Kamera -->
+  <video id="video" autoplay playsinline style="display:none;"></video>
+  <canvas id="cameraCanvas" width="400" height="300"></canvas>
+
+  <!-- Game -->
+  <canvas id="gameCanvas" width="400" height="300"></canvas>
+
+  <script>
+    const video = document.getElementById("video");
+    const cameraCanvas = document.getElementById("cameraCanvas");
+    const cameraCtx = cameraCanvas.getContext("2d");
+
+    const gameCanvas = document.getElementById("gameCanvas");
+    const gameCtx = gameCanvas.getContext("2d");
+
+    // Posisi lingkaran merah (deteksi benda merah)
+    let circleX = 200, circleY = 150;
+
+    // Target biru
+    let targetX = Math.random() * (gameCanvas.width - 100) + 50;
+    let targetY = Math.random() * (gameCanvas.height - 100) + 50;
+    let score = 0;
+
+    // Minta izin kamera
+    navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+      video.srcObject = stream;
+    });
+
+    function detectRedObject() {
+      cameraCtx.drawImage(video, 0, 0, cameraCanvas.width, cameraCanvas.height);
+      const frame = cameraCtx.getImageData(0, 0, cameraCanvas.width, cameraCanvas.height);
+      const data = frame.data;
+
+      let totalX = 0, totalY = 0, count = 0;
+
+      for (let i = 0; i < data.length; i += 4) {
+        let r = data[i];     // red
+        let g = data[i + 1]; // green
+        let b = data[i + 2]; // blue
+
+        // Deteksi warna merah (threshold bisa disesuaikan)
+        if (r > 120 && g < 80 && b < 80) {
+          let index = i / 4;
+          let x = index % cameraCanvas.width;
+          let y = Math.floor(index / cameraCanvas.width);
+          totalX += x;
+          totalY += y;
+          count++;
+        }
+      }
+
+      if (count > 0) {
+        circleX = (totalX / count) * (gameCanvas.width / cameraCanvas.width);
+        circleY = (totalY / count) * (gameCanvas.height / cameraCanvas.height);
+      }
+    }
+
+    function updateGame() {
+      detectRedObject();
+
+      // Clear
+      gameCtx.fillStyle = "#333";
+      gameCtx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+      // Target biru
+      gameCtx.fillStyle = "blue";
+      gameCtx.beginPath();
+      gameCtx.arc(targetX, targetY, 20, 0, Math.PI * 2);
+      gameCtx.fill();
+
+      // Lingkaran merah (benda terdeteksi)
+      gameCtx.fillStyle = "red";
+      gameCtx.beginPath();
+      gameCtx.arc(circleX, circleY, 20, 0, Math.PI * 2);
+      gameCtx.fill();
+
+      // Cek tabrakan
+      let dx = circleX - targetX;
+      let dy = circleY - targetY;
+      let distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < 40) {
+        score++;
+        targetX = Math.random() * (gameCanvas.width - 100) + 50;
+        targetY = Math.random() * (gameCanvas.height - 100) + 50;
+      }
+
+      // Skor
+      gameCtx.fillStyle = "white";
+      gameCtx.font = "16px Arial";
+      gameCtx.fillText("Skor: " + score, 10, 20);
+
+      // Game terus jalan tanpa timer
+      requestAnimationFrame(updateGame);
+    }
+
+    updateGame();
+  </script>
+</body>
+</html>
