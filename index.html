@@ -8,14 +8,19 @@
       display: flex;
       justify-content: space-around;
       align-items: flex-start;
+      flex-wrap: wrap; /* biar rapi di HP */
       background: #111;
       color: white;
       font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
     }
     #cameraCanvas, #gameCanvas {
       border: 2px solid white;
       margin: 10px;
       background: #222;
+      max-width: 100%; /* biar responsive */
+      height: auto;
     }
   </style>
 </head>
@@ -43,9 +48,13 @@
     let targetY = Math.random() * (gameCanvas.height - 100) + 50;
     let score = 0;
 
-    // Minta izin kamera
-    navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+    // Minta izin kamera (default kamera depan untuk smartphone)
+    navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user" } 
+    }).then(stream => {
       video.srcObject = stream;
+    }).catch(err => {
+      console.error("Kamera gagal dimuat:", err);
     });
 
     function detectRedObject() {
@@ -56,11 +65,10 @@
       let totalX = 0, totalY = 0, count = 0;
 
       for (let i = 0; i < data.length; i += 4) {
-        let r = data[i];     // red
-        let g = data[i + 1]; // green
-        let b = data[i + 2]; // blue
+        let r = data[i];
+        let g = data[i + 1];
+        let b = data[i + 2];
 
-        // Deteksi warna merah (threshold bisa disesuaikan)
         if (r > 120 && g < 80 && b < 80) {
           let index = i / 4;
           let x = index % cameraCanvas.width;
@@ -112,7 +120,6 @@
       gameCtx.font = "16px Arial";
       gameCtx.fillText("Skor: " + score, 10, 20);
 
-      // Game terus jalan tanpa timer
       requestAnimationFrame(updateGame);
     }
 
